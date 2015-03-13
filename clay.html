@@ -1,0 +1,355 @@
+<!doctype html>
+<html>
+
+<head>
+  <script type="text/javascript">
+    /* TextareaDecorator.js
+     * written by Colin Kuebler 2012
+     * Part of LDT, dual licensed under GPLv3 and MIT
+     * Builds and maintains a styled output layer under a textarea input layer
+     */
+
+    function TextareaDecorator( textarea, parser ){
+      /* INIT */
+      var api = this;
+
+      // construct editor DOM
+      var parent = document.createElement("div");
+      var output = document.createElement("pre");
+      parent.appendChild(output);
+      var label = document.createElement("label");
+      parent.appendChild(label);
+      // replace the textarea with RTA DOM and reattach on label
+      textarea.parentNode.replaceChild( parent, textarea );
+      label.appendChild(textarea);
+      // transfer the CSS styles to our editor
+      parent.className = 'ldt ' + textarea.className;
+      textarea.className = '';
+      // turn off built-in spellchecking in firefox
+      textarea.spellcheck = false;
+      // turn off word wrap
+      textarea.wrap = "off";
+
+      // coloring algorithm
+      var color = function( input, output, parser ){
+        var oldTokens = output.childNodes;
+        var newTokens = parser.tokenize(input);
+        var firstDiff, lastDiffNew, lastDiffOld;
+        // find the first difference
+        for( firstDiff = 0; firstDiff < newTokens.length && firstDiff < oldTokens.length; firstDiff++ )
+          if( newTokens[firstDiff] !== oldTokens[firstDiff].textContent ) break;
+        // trim the length of output nodes to the size of the input
+        while( newTokens.length < oldTokens.length )
+          output.removeChild(oldTokens[firstDiff]);
+        // find the last difference
+        for( lastDiffNew = newTokens.length-1, lastDiffOld = oldTokens.length-1; firstDiff < lastDiffOld; lastDiffNew--, lastDiffOld-- )
+          if( newTokens[lastDiffNew] !== oldTokens[lastDiffOld].textContent ) break;
+        // update modified spans
+        for( ; firstDiff <= lastDiffOld; firstDiff++ ){
+          oldTokens[firstDiff].className = parser.identify(newTokens[firstDiff]);
+          oldTokens[firstDiff].textContent = oldTokens[firstDiff].innerText = newTokens[firstDiff];
+        }
+        // add in modified spans
+        for( var insertionPt = oldTokens[firstDiff] || null; firstDiff <= lastDiffNew; firstDiff++ ){
+          var span = document.createElement("span");
+          span.className = parser.identify(newTokens[firstDiff]);
+          span.textContent = span.innerText = newTokens[firstDiff];
+          output.insertBefore( span, insertionPt );
+        }
+      };
+
+      api.input = textarea;
+      api.output = output;
+      api.update = function(){
+        var input = textarea.value;
+        if( input ){
+          color( input, output, parser );
+          // determine the best size for the textarea
+          var lines = input.split('\n');
+          // find the number of columns
+          var maxlen = 0, curlen;
+          for( var i = 0; i < lines.length; i++ ){
+            // calculate the width of each tab
+            var tabLength = 0, offset = -1;
+            while( (offset = lines[i].indexOf( '\t', offset+1 )) > -1 ){
+              tabLength += 7 - (tabLength + offset) % 8;
+            }
+            var curlen = lines[i].length + tabLength;
+            // store the greatest line length thus far
+            maxlen = maxlen > curlen ? maxlen : curlen;
+          }
+          textarea.cols = maxlen + 1;
+          textarea.rows = lines.length + 1;
+        } else {
+          // clear the display
+          output.innerHTML = '';
+          // reset textarea rows/cols
+          textarea.cols = textarea.rows = 1;
+        }
+      };
+
+      // detect all changes to the textarea,
+      // including keyboard input, cut/copy/paste, drag & drop, etc
+      if( textarea.addEventListener ){
+        // standards browsers: oninput event
+        textarea.addEventListener( "input", api.update, false );
+      } else {
+        // MSIE: detect changes to the 'value' property
+        textarea.attachEvent( "onpropertychange",
+          function(e){
+            if( e.propertyName.toLowerCase() === 'value' ){
+              api.update();
+            }
+          }
+        );
+      }
+      // initial highlighting
+      api.update();
+
+      return api;
+    };
+  </script>
+  <script type="text/javascript">
+    /* Parser.js
+     * written by Colin Kuebler 2012
+     * Part of LDT, dual licensed under GPLv3 and MIT
+     * Generates a tokenizer from regular expressions for TextareaDecorator
+     */
+
+    function Parser(rules, i){
+      var api = this;
+      var i = i ? 'i' : '';
+      var parseRE = null;
+      var ruleSrc = [];
+      var ruleMap = {};
+
+      api.add = function(rules){
+        for( var rule in rules ){
+          var s = rules[rule].source;
+          ruleSrc.push( s );
+          ruleMap[rule] = new RegExp('^('+s+')$', i );
+        }
+        parseRE = new RegExp( ruleSrc.join('|'), 'g'+i );
+      }
+      api.tokenize = function(input){
+        return input.match(parseRE);
+      };
+      api.identify = function(token){
+        for(var rule in ruleMap){
+          if(ruleMap[rule].test(token)){
+            return rule;
+          }
+        }
+      };
+
+      api.add(rules);
+      return api;
+    };
+  </script>
+
+  <!-- we want a minimal set of styles -->
+  <style type="text/css">
+    /* Overall styles */
+    body { font-size: 16px; }
+    body { background: #FFEFD5; color: #444; }
+    div { clear: both; }
+
+    /* Styles for the main document */
+    #main { width: 720px; margin: 0 auto; background: #FFEFD5; }
+
+    /* LDT highlight styles */
+    .ldt .comment { color: silver; }
+    .ldt .string { color: green; }
+    .ldt .number { color: navy; }
+    /* setting inline-block and margin to avoid misalignment bug in windows */
+    .ldt .keyword { font-weight: bold; display: inline-block; margin-bottom: -1px; }
+    .ldt .variable { color: cyan; }
+    .ldt .define { color: blue; }
+
+    /* Custom LDT styles */
+    .ldt, .ldt label {padding: 0px; margin-top: 16px; padding: 0 10px 10px 10px;}
+    .ldt, .ldt pre, .ldt textarea {font-size: 16px !important;/* resize algorithm depends on a monospaced font */font-family: monospace !important;color: #444; }
+
+    .ldt textarea {
+      /* fallback for browsers without rgba */
+      color: transparent !important;
+      /* make sure the alpha is low enough so it doesn't block the output layer */
+      color: rgba(0,0,0,.2) !important;
+    }
+
+    /* Core LDT styles */
+    .ldt {overflow: auto;position: relative;}
+    .ldt pre {-moz-padding-start: 1px;}
+    .ldt label {position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: inline; box-sizing: border-box; -moz-box-sizing: border-box; -webkit-box-sizing: border-box; cursor: text; }
+    .ldt textarea {margin: 0;padding: 0;border: 0; background: 0; outline: none; resize: none; min-width: 100%; min-height: 100%; overflow: hidden;/* IE doesn't support rgba texarea, so use vendor specific alpha filter */filter: alpha(opacity = 20); }
+
+
+    /* Style for units of code */
+    .unit, .unit .code, .unit .result { min-height: 16px; font-family: monospace; }
+    .code, .result { margin: 10px; }
+    .unit { width: inherit; border: 1px solid #999; }
+    .unit .result { padding: 5px; }
+    .unit .result .output { color: #444; }
+    .unit .result .error { color: #FF6347; }
+    .unit .code {
+      resize: vertical; min-height: 80px; margin-top: 16px; margin-bottom: 16px; overflow: hidden; padding: 0 10px 10px 10px;
+      resize: none; border: 1px solid #aaa;
+      box-sizing: border-box; -moz-box-sizing: border-box; -webkit-box-sizing: border-box;
+      border-radius: 4px; -moz-border-radius: 4px; -webkit-border-radius: 4px;
+    }
+    .unit .result { border: 1px dashed #999; }
+    .unit .buttons { margin: 5px auto; display: block; width: 150px; }
+    .unit .buttons .return, .unit .buttons .clear { display: inline-block; width: 60px; }
+
+
+    a.btn { text-decoration: none; padding: 2px; border: 1px solid #999; color: #999; text-align: center; }
+    a.btn:hover { text-decoration: none; color: #444; border: 1px solid #444; }
+    a.btn:focus { text-decoration: none; color: #ccc; background: #444; border: 1px solid #444; }
+
+    /* Special debug info box styles */
+    #debug { width: 300px; min-height: 32px; padding: 5px; border: 1px solid #999; font-size: 12px; top: 10px; left: 10px; position: absolute; color: #999; background: #FFEFD5; z-index: -1; display: none; }
+    #debug .log, #debug .screen { clear: both; margin-bottom: 5px; }
+    #debug .log { max-height: 400px; overflow: scroll; }
+  </style>
+</head>
+
+<body>
+  <div id="debug">
+    <i>Debug</i>
+    <div class="screen"></div>
+    <div class="log"></div>
+  </div>
+
+  <div id="main">
+    <!-- units of code and result -->
+    <div id="unit-1" class="unit">
+      <textarea class="code"></textarea>
+      <div class="result">
+        <div class="output"></div>
+        <div class="error"></div>
+      </div>
+      <div class="buttons">
+        <a href="#unit-1" class="btn return">Return</a>
+        <a href="#unit-1" class="btn clear">Clear</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- A dedicated web worker to execute javascript code in a background thread that cleans up after a single execution -->
+  <script id="executor" type="javascript/worker">
+    self.onmessage = function(e) {
+      // Process input and respond to main script
+      var input = JSON.parse(e.data);
+      if (input.type == "exec") {
+        var output = {payload: eval(input.code), type: 'output'};
+        self.postMessage(JSON.stringify(output));
+      };
+      // Terminate itself to ensure cleanup of all context
+      self.close();
+    };
+  </script>
+
+  <script type="text/javascript">
+    /* Some useful hacks */
+    // add trim() function for removing whitespace
+    if(typeof(String.prototype.trim) === "undefined") {
+      String.prototype.trim = function() {
+        return String(this).replace(/^\s+|\s+$/g, '');
+      };
+    };
+    // forEach for any collection that responds to 'length' and '[]', because
+    // NodeList doesn't have it by default
+    var forEach = function (collection, callback, scope) {
+      for (var i = 0; i < collection.length; i++) {
+        callback.call(scope, i, collection[i]);
+      }
+    };
+
+    // Useful aliases for DOM node finding
+    var doc = {
+      find: function(e) {return document.getElementById(e)},
+      where: function(e) {return document.querySelectorAll(e)},
+      firstWhere: function(e) {return document.querySelector(e)}
+    };
+
+    function log(msg) {
+      var fragment = document.createDocumentFragment();
+      fragment.appendChild(document.createTextNode(msg));
+      fragment.appendChild(document.createElement('br'));
+      document.querySelector("#debug .log").appendChild(fragment);
+    };
+
+    // Using some javascript in the page at the given location, create a
+    // Dedicated Web Worker with that code
+    function createWorker(selector) {
+      var blob = new Blob([
+        doc.firstWhere(selector).innerText
+      ], { type: "text/javascript" });
+      var worker = new Worker(window.URL.createObjectURL(blob));
+      return worker;
+    };
+
+    // We want a sandboxed environment to run user-input javascript code, and
+    // we also want to handle errors easily. We're in luck! A dedicated web
+    // worker is all that we really need.
+    function executeCode(unitId) {
+      var worker = createWorker('#executor');
+      var code = doc.firstWhere(unitId + ' textarea').value.trim();
+      var input = {type: 'exec', code: code};
+      worker.postMessage(JSON.stringify(input));
+      worker.onmessage = function(e) {
+        doc.firstWhere(unitId + ' .result .output').innerText = '';
+        doc.firstWhere(unitId + ' .result .error').innerText = '';
+        var input = JSON.parse(e.data);
+        if (input.type == 'output') {
+          doc.firstWhere(unitId + ' .result .output').innerText = input.payload;
+        };
+      };
+      worker.onerror = function(e) {
+        doc.firstWhere(unitId + ' .result .output').innerText = '';
+        doc.firstWhere(unitId + ' .result .error').innerText = '';
+        doc.firstWhere(unitId + ' .result .error').innerText = e.message;
+      };
+    };
+
+    function clearResults(unitId) {
+      doc.firstWhere(unitId + ' .result .output').innerText = '';
+      doc.firstWhere(unitId + ' .result .error').innerText = '';
+    };
+
+    // A simple, generic grammar, taken from
+    // https://github.com/kueblc/LDT/blob/master/examples/generic.html
+    var parser = new Parser({
+      whitespace: /\s+/,
+      comment: /\/\*([^\*]|\*[^\/])*(\*\/?)?|(\/\/|#)[^\r\n]*/,
+      string: /"(\\.|[^"\r\n])*"?|'(\\.|[^'\r\n])*'?/,
+      number: /0x[\dA-Fa-f]+|-?(\d+\.?\d*|\.\d+)/,
+      keyword: /(and|as|case|catch|class|const|def|delete|die|do|else|elseif|esac|exit|extends|false|fi|finally|for|foreach|function|global|if|new|null|or|private|protected|public|published|resource|return|self|static|struct|switch|then|this|throw|true|try|var|void|while|xor)(?!\w|=)/,
+      variable: /[\$\%\@](\->|\w)+(?!\w)|\${\w*}?/,
+      define: /[$A-Z_a-z0-9]+/,
+      op: /[\+\-\*\/=<>!]=?|[\(\)\{\}\[\]\.\|]/,
+      other: /\S+/,
+    });
+
+    // Run this code after the page is loaded
+    window.onload = function() {
+      // Clicking Return in any unit will execute the code in that unit
+      forEach(doc.where('.return'), function(index, value) {
+        value.addEventListener('click', function(e){
+          executeCode(e.target.getAttribute('href'));
+        });
+      });
+
+      // Clicking Clear in any unit will clear the output
+      forEach(doc.where('.clear'), function(index, value) {
+        value.addEventListener('click', function(e) {
+          clearResults(e.target.getAttribute('href'));
+        });
+      });
+
+      var decorator = new TextareaDecorator(doc.firstWhere('#unit-1 .code'), parser);
+    };
+  </script>
+</body>
+
+</html>
