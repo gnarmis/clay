@@ -199,7 +199,7 @@
     }
     .unit .result { border: 1px dashed #999; }
     .unit .buttons { margin: 5px auto; display: block; width: 150px; }
-    .unit .buttons .return, .unit .buttons .clear { display: inline-block; width: 60px; }
+    .unit .buttons .return, .unit .buttons .clear { display: inline-block; width: 60px; margin: 0 3px; }
 
 
     a.btn { text-decoration: none; padding: 2px; border: 1px solid #999; color: #999; text-align: center; }
@@ -220,20 +220,7 @@
     <div class="log"></div>
   </div>
 
-  <div id="main">
-    <!-- units of code and result -->
-    <div id="unit-1" class="unit">
-      <textarea class="code"></textarea>
-      <div class="result">
-        <div class="output"></div>
-        <div class="error"></div>
-      </div>
-      <div class="buttons">
-        <a href="#unit-1" class="btn return">Return</a>
-        <a href="#unit-1" class="btn clear">Clear</a>
-      </div>
-    </div>
-  </div>
+  <div id="main"></div>
 
   <!-- A dedicated web worker to execute javascript code in a background thread that cleans up after a single execution -->
   <script id="executor" type="javascript/worker">
@@ -317,6 +304,24 @@
       doc.firstWhere(unitId + ' .result .error').innerText = '';
     };
 
+    function createCodeUnit(parent) {
+      // no second is like this second!
+      var unitId = +new Date();
+      var unit = '<div id="unit-' + unitId +'" class="unit">' +
+        '<textarea class="code"></textarea>' +
+        '<div class="result">' +
+          '<div class="output"></div>' +
+          '<div class="error"></div>' +
+        '</div>' +
+        '<div class="buttons">' +
+          '<a href="#unit-' + unitId + '" class="btn return">Return</a>' +
+          '<a href="#unit-' + unitId + '" class="btn clear">Clear</a>' +
+        '</div>' +
+      '</div>';
+      var result = parent.insertAdjacentHTML('beforeend', unit);
+      new TextareaDecorator(doc.firstWhere('#unit-' + unitId + ' .code'), parser);
+    };
+
     // A simple, generic grammar, taken from
     // https://github.com/kueblc/LDT/blob/master/examples/generic.html
     var parser = new Parser({
@@ -333,6 +338,8 @@
 
     // Run this code after the page is loaded
     window.onload = function() {
+      createCodeUnit(doc.find('main'));
+
       // Clicking Return in any unit will execute the code in that unit
       forEach(doc.where('.return'), function(index, value) {
         value.addEventListener('click', function(e){
@@ -347,7 +354,8 @@
         });
       });
 
-      var decorator = new TextareaDecorator(doc.firstWhere('#unit-1 .code'), parser);
+
+      // var decorator = new TextareaDecorator(doc.firstWhere(), parser);
     };
   </script>
 </body>
