@@ -281,8 +281,10 @@
     // forEach for any collection that responds to 'length' and '[]', because
     // NodeList doesn't have it by default
     var forEach = function (collection, callback, scope) {
-      for (var i = 0; i < collection.length; i++) {
-        callback.call(scope, i, collection[i]);
+      if (collection != undefined && collection != null) {
+        for (var i = 0; i < collection.length; i++) {
+          callback.call(scope, i, collection[i]);
+        }
       }
     };
 
@@ -338,9 +340,14 @@
       doc.firstWhere(unitId + ' .result .error').innerText = '';
     };
 
-    function createCodeUnit(parent) {
+    // Expects a parent Node, not a selector, and also a string of JavaScript
+    // (thow if it's invalid it's ok, because we'll handle and show the error)
+    function createCodeUnitWithCode(parent, code) {
       // no second is like this second!
       var unitId = +new Date();
+      var identifier = '#unit-'+unitId;
+
+      // Append a unit to the parent Node
       var unit = '<div id="unit-' + unitId +'" class="unit">' +
         '<textarea class="code"></textarea>' +
         '<div class="result">' +
@@ -352,8 +359,18 @@
           '<a href="#unit-' + unitId + '" class="btn clear">Clear</a>' +
         '</div>' +
       '</div>';
-      var result = parent.insertAdjacentHTML('beforeend', unit);
-      new TextareaDecorator(doc.firstWhere('#unit-' + unitId + ' .code'), parser);
+      parent.insertAdjacentHTML('beforeend', unit);
+
+      // We want to fill the textarea with code if we were asked to do that
+      if (code != undefined && code != null & code != '') {
+        var textarea = doc.firstWhere(identifier + ' textarea');
+        if (textarea != undefined && textarea != null) {
+          textarea.value = code;
+        }
+      }
+
+      // Enable syntax highlighting via LDT as well as events
+      new TextareaDecorator(doc.firstWhere(identifier + ' textarea'), parser);
       setupEvents();
     };
 
@@ -395,10 +412,27 @@
       });
     };
 
+    // After a Clay page is saved, there's a pre tag with the code-so-far, but
+    // when you then load that saved page, LDT won't get setup correctly. We
+    // want the code that was there before to already exist on the page and
+    // also be editable as if we'd just written it. So, we manually grab the
+    // text in the pre tags in the page and set up LDT ourselves
+    function detectAndSetupExistingUnits(parent) {
+      var existingPreTags = doc.where('.ldt.code pre');
+      console.dir(existingPreTags);
+      forEach(existingPreTags, function(index, node) {
+        // replace the entire unit after grabbing the pre tag's value
+        var code = node.innerText;
+        parent.removeChild(node.parentNode.parentNode);
+        // create new code unit and put in the old code and ensure
+        // highlighting and events work
+        createCodeUnitWithCode(parent, code);
+      });
+    };
+
     // Run this code after the page is loaded
     window.onload = function() {
-      //createCodeUnit(doc.find('main'));
-
+      detectAndSetupExistingUnits(doc.find('main'));
       setupEvents();
     };
   </script>
