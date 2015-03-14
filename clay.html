@@ -182,7 +182,8 @@
     .fixed-nav-bar { position: fixed; top: 0; left: 0; z-index: 9999; width: 100%; min-width: 768px; height: 50px; background-color: #FFFFF0; }
     .pull-right { display: inline-block; clear: none; float: right;}
     .pull-left { display: inline-block; clear: none; float: left; }
-
+    .small { color: #ccc;  }
+    .italics { font-style: italic; }
 
     /* LDT highlight styles for code */
     .ldt .comment { color: silver; }
@@ -263,7 +264,7 @@
 
   <div class="fixed-nav-bar">
     <ul id="top-nav-bar">
-      <li class="pull-left"><b>Clay</b>&nbsp;a computable document</li>
+      <li class="pull-left"><b>Clay</b>&nbsp;<span class="small italics">a computable document</span></li>
       <li class="pull-right"><a id="save-btn" class="btn" href="#footer">Save</a></li>
       <li class="pull-right"><a id="append-unit" href="#main" class="btn">Append Code</a></li>
       <li class="pull-right"><a id="append-section" href="#main" class="btn">Append Text</a></li>
@@ -311,6 +312,31 @@
       where: function(e) {return document.querySelectorAll(e)},
       firstWhere: function(e) {return document.querySelector(e)}
     };
+
+    // A simple, generic grammar, taken from
+    // https://github.com/kueblc/LDT/blob/master/examples/generic.html
+    var codeParser = new Parser({
+      whitespace: /\s+/,
+      comment: /\/\*([^\*]|\*[^\/])*(\*\/?)?|(\/\/|#)[^\r\n]*/,
+      string: /"(\\.|[^"\r\n])*"?|'(\\.|[^'\r\n])*'?/,
+      number: /0x[\dA-Fa-f]+|-?(\d+\.?\d*|\.\d+)/,
+      keyword: /(and|as|case|catch|class|const|def|delete|die|do|else|elseif|esac|exit|extends|false|fi|finally|for|foreach|function|global|if|new|null|or|private|protected|public|published|resource|return|self|static|struct|switch|then|this|throw|true|try|var|void|while|xor)(?!\w|=)/,
+      variable: /[\$\%\@](\->|\w)+(?!\w)|\${\w*}?/,
+      define: /[$A-Z_a-z0-9]+/,
+      op: /[\+\-\*\/=<>!]=?|[\(\)\{\}\[\]\.\|]/,
+      other: /\S+/,
+    });
+
+    // Another parser I stole from LDT ;)
+    // https://github.com/kueblc/LDT/blob/master/examples/wysiwyg.html
+    var wysiwygParser = new Parser({
+      whitespace: /\s+/,
+      "bold fix": /\*[^\*\r\n]*\*?/,
+      underline: /_[^_]*_?/,
+      "italic fix": /\/[^\/\r\n]*\/?/,
+      strike: /-[^-]*-?/,
+      other: /\S+/
+    });
 
     function log(msg) {
       var fragment = document.createDocumentFragment();
@@ -389,7 +415,7 @@
 
       // Enable syntax highlighting via LDT as well as events
       new TextareaDecorator(doc.firstWhere(identifier + ' textarea'), codeParser);
-      setupEvents();
+      setupUnitEvents(identifier);
     };
 
     function createSectionWithText(parent, text) {
@@ -413,75 +439,52 @@
 
       // Enable syntax highlighting via LDT as well as events
       new TextareaDecorator(doc.firstWhere(identifier + ' textarea'), wysiwygParser);
-      setupEvents();
+      setupSectionEvents(identifier);
     };
 
-    // A simple, generic grammar, taken from
-    // https://github.com/kueblc/LDT/blob/master/examples/generic.html
-    var codeParser = new Parser({
-      whitespace: /\s+/,
-      comment: /\/\*([^\*]|\*[^\/])*(\*\/?)?|(\/\/|#)[^\r\n]*/,
-      string: /"(\\.|[^"\r\n])*"?|'(\\.|[^'\r\n])*'?/,
-      number: /0x[\dA-Fa-f]+|-?(\d+\.?\d*|\.\d+)/,
-      keyword: /(and|as|case|catch|class|const|def|delete|die|do|else|elseif|esac|exit|extends|false|fi|finally|for|foreach|function|global|if|new|null|or|private|protected|public|published|resource|return|self|static|struct|switch|then|this|throw|true|try|var|void|while|xor)(?!\w|=)/,
-      variable: /[\$\%\@](\->|\w)+(?!\w)|\${\w*}?/,
-      define: /[$A-Z_a-z0-9]+/,
-      op: /[\+\-\*\/=<>!]=?|[\(\)\{\}\[\]\.\|]/,
-      other: /\S+/,
-    });
-
-    // Another parser I stole from LDT ;)
-    // https://github.com/kueblc/LDT/blob/master/examples/wysiwyg.html
-    var wysiwygParser = new Parser({
-      whitespace: /\s+/,
-      "bold fix": /\*[^\*\r\n]*\*?/,
-      underline: /_[^_]*_?/,
-      "italic fix": /\/[^\/\r\n]*\/?/,
-      strike: /-[^-]*-?/,
-      other: /\S+/
-    });
-
-    // We can call this many times because EventTarget.addEventListener
-    // discards calls with arguments that are identical to a previous call
-    function setupEvents(parent) {
-      if (parent == undefined) {parent = doc.find('main')};
-
-      // Clicking Return in any unit will execute the code in that unit
-      forEach(doc.where('.return'), function(index, value) {
-        value.addEventListener('click', function(e) {
-          executeCode(e.target.getAttribute('href'));
-        });
+    function setupUnitEvents(unitId) {
+      doc.firstWhere(unitId + ' .return').addEventListener('click', function(e) {
+        executeCode(e.target.getAttribute('href'));
       });
 
-      // Clicking Clear in any unit will clear the output
-      forEach(doc.where('.clear'), function(index, value) {
-        value.addEventListener('click', function(e) {
-          clearResults(e.target.getAttribute('href'));
-        });
+      doc.firstWhere(unitId + ' .clear').addEventListener('click', function(e) {
+        clearResults(e.target.getAttribute('href'));
       });
 
-      // Clicking Remove in any section will remove the section
-      forEach(doc.where('.remove-section'), function(index, value) {
-        value.addEventListener('click', function(e) {
-          var section = doc.firstWhere(e.target.getAttribute('href'));
-          if (section != null) {
-            if (confirm("Really remove this section of text?")) {
-              parent.removeChild(section);
-            };
+      doc.firstWhere(unitId + ' .remove-unit').addEventListener('click', function(e) {
+        var unit = doc.firstWhere(e.target.getAttribute('href'));
+        if (unit != null) {
+          if (confirm("Really remove this unit of code?")) {
+            main.removeChild(unit);
           };
-        });
+        };
+      });
+    };
+
+    function setupSectionEvents(sectionId) {
+      doc.firstWhere(sectionId + ' .remove-section').addEventListener('click', function(e) {
+        var section = doc.firstWhere(e.target.getAttribute('href'));
+        if (section != null) {
+          if (confirm("Really remove this section of text?")) {
+            main.removeChild(section);
+          };
+        };
+      });
+    };
+
+    function setupGlobalButtons() {
+      // Append buttons
+      doc.firstWhere('#append-section').addEventListener('click', function(e) {
+        createSectionWithText(doc.firstWhere(e.target.getAttribute('href')));
+      });
+      doc.firstWhere('#append-unit').addEventListener('click', function(e) {
+        createCodeUnitWithCode(doc.firstWhere(e.target.getAttribute('href')));
       });
 
-      // Clicking Remove in any unit will remove the unit
-      forEach(doc.where('.remove-unit'), function(index, value) {
-        value.addEventListener('click', function(e) {
-          var unit = doc.firstWhere(e.target.getAttribute('href'));
-          if (unit != null) {
-            if (confirm("Really remove this unit of code?")) {
-              parent.removeChild(unit);
-            };
-          };
-        });
+      // Trigger saving of all of the page's current HTML when save button is clicked
+      doc.firstWhere('#save-btn').addEventListener('click', function(e) {
+        html = '<!DOCTYPE html>\n<html>\n\t' + document.documentElement.innerHTML + '\n</html>';
+        console.saveHtml(html);
       });
     };
 
@@ -516,29 +519,19 @@
       });
     };
 
+    var main = doc.find('main');
+
+    function exampleUnitAndSection() {
+      createSectionWithText(main, 'Plain\n*Bold*\n/Italics/\n_Underline_\n-Strikethrough-');
+      createCodeUnitWithCode(main, 'Math.floor(Math.random()*100)');
+    };
+
     // Run this code after the page is loaded
     window.onload = function() {
-      detectAndSetupExistingUnits(doc.find('main'));
       detectAndSetupExistingSections(doc.find('main'));
+      detectAndSetupExistingUnits(doc.find('main'));
 
-      createSectionWithText(doc.find('main'), 'Plain\n*Bold*\n/Italics/\n_Underline_\n-Strikethrough-');
-      createCodeUnitWithCode(doc.find('main'), 'Math.floor(Math.random()*100)');
-
-      // Append buttons
-      doc.firstWhere('#append-section').addEventListener('click', function(e) {
-        createSectionWithText(doc.firstWhere(e.target.getAttribute('href')));
-      });
-      doc.firstWhere('#append-unit').addEventListener('click', function(e) {
-        createCodeUnitWithCode(doc.firstWhere(e.target.getAttribute('href')));
-      });
-
-      // Trigger saving of all of the page's current HTML when save button is clicked
-      doc.firstWhere('#save-btn').addEventListener('click', function(e) {
-        html = '<!DOCTYPE html>\n<html>\n\t' + document.documentElement.innerHTML + '\n</html>';
-        console.saveHtml(html);
-      });
-
-      setupEvents();
+      setupGlobalButtons();
     };
   </script>
 </body>
