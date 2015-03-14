@@ -146,6 +146,28 @@
       return api;
     };
   </script>
+  <script type="text/javascript">
+    (function(console){
+      console.saveHtml = function(data, filename) {
+        // terminate immediately if nothing to save
+        if (!data) {
+          console.error('Console.saveHtml: No data');
+          return;
+        }
+        if (!filename) filename = 'clay.html';
+
+        var blob = new Blob([data], {type: 'text/html'}),
+          e = document.createEvent('MouseEvents'),
+          a = document.createElement('a');
+
+        a.download = filename
+        a.href = window.URL.createObjectURL(blob)
+        a.dataset.downloadurl =  ['text/html', a.download, a.href].join(':')
+        e.initMouseEvent('click', true, false, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null)
+        a.dispatchEvent(e)
+      }
+    })(console)
+  </script>
 
   <!-- we want a minimal set of styles -->
   <style type="text/css">
@@ -155,7 +177,12 @@
     div { clear: both; }
 
     /* Styles for the main document */
-    #main { width: 720px; margin: 0 auto; background: #FFEFD5; }
+    #main { width: 720px; margin: 80px auto; background: #FFEFD5; }
+    #top-nav-bar { margin-top: 16px; clear: both; font-family: monospace; list-style: none; padding: 0 40px; }
+    .fixed-nav-bar { position: fixed; top: 0; left: 0; z-index: 9999; width: 100%; height: 50px; background-color: #FFFFF0; }
+    .pull-right { display: inline-block; clear: none; float: right;}
+    .pull-left { display: inline-block; clear: none; float: left; }
+
 
     /* LDT highlight styles */
     .ldt .comment { color: silver; }
@@ -187,7 +214,7 @@
     /* Style for units of code */
     .unit, .unit .code, .unit .result { min-height: 16px; font-family: monospace; }
     .code, .result { margin: 10px; }
-    .unit { width: inherit; border: 1px solid #999; }
+    .unit { width: inherit; margin: 32px 0; }
     .unit .result { padding: 5px; }
     .unit .result .output { color: #444; }
     .unit .result .error { color: #FF6347; }
@@ -199,12 +226,12 @@
     }
     .unit .result { border: 1px dashed #999; }
     .unit .buttons { margin: 5px auto; display: block; width: 150px; }
-    .unit .buttons .return, .unit .buttons .clear { display: inline-block; width: 60px; margin: 0 3px; }
+    .unit .buttons .return, .unit .buttons .clear { display: inline-block; }
 
 
-    a.btn { text-decoration: none; padding: 2px; border: 1px solid #999; color: #999; text-align: center; }
-    a.btn:hover { text-decoration: none; color: #444; border: 1px solid #444; }
-    a.btn:focus { text-decoration: none; color: #ccc; background: #444; border: 1px solid #444; }
+    a.btn { text-decoration: none; border: 1px solid #999; color: #999; text-align: center; padding: 3px 6px; margin: 3px; }
+    a.btn:hover { text-decoration: none; color: #eee; border: 1px solid #444; background: #444; }
+    a.btn:focus { text-decoration: none; color: #eee; background: #111; border: 1px solid #444; }
 
     /* Special debug info box styles */
     #debug { width: 300px; min-height: 32px; padding: 5px; border: 1px solid #999; font-size: 12px; top: 10px; left: 10px; position: absolute; color: #999; background: #FFEFD5; z-index: -1; display: none; }
@@ -218,6 +245,13 @@
     <i>Debug</i>
     <div class="screen"></div>
     <div class="log"></div>
+  </div>
+
+  <div class="fixed-nav-bar">
+    <ul id="top-nav-bar">
+      <li class="pull-left">Clay</li>
+      <li class="pull-right"><a id="save-btn" class="btn" href="#footer">Save</a></li>
+    </ul>
   </div>
 
   <div id="main"></div>
@@ -320,6 +354,7 @@
       '</div>';
       var result = parent.insertAdjacentHTML('beforeend', unit);
       new TextareaDecorator(doc.firstWhere('#unit-' + unitId + ' .code'), parser);
+      setupEvents();
     };
 
     // A simple, generic grammar, taken from
@@ -336,10 +371,9 @@
       other: /\S+/,
     });
 
-    // Run this code after the page is loaded
-    window.onload = function() {
-      createCodeUnit(doc.find('main'));
-
+    // We can call this many times because EventTarget.addEventListener
+    // discards calls with arguments that are identical to a previous call
+    function setupEvents() {
       // Clicking Return in any unit will execute the code in that unit
       forEach(doc.where('.return'), function(index, value) {
         value.addEventListener('click', function(e){
@@ -354,8 +388,18 @@
         });
       });
 
+      // Trigger saving of all of the page's current HTML when save button is clicked
+      doc.firstWhere('#save-btn').addEventListener('click', function(e) {
+        html = '<!DOCTYPE html>\n<html>\n\t' + document.documentElement.innerHTML + '\n</html>';
+        console.saveHtml(html);
+      });
+    };
 
-      // var decorator = new TextareaDecorator(doc.firstWhere(), parser);
+    // Run this code after the page is loaded
+    window.onload = function() {
+      //createCodeUnit(doc.find('main'));
+
+      setupEvents();
     };
   </script>
 </body>
