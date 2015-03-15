@@ -9,6 +9,17 @@ Specifically, it's a single HTML file with zero outside dependencies that
 allows you to experiment with arbitrary Javascript code and also save all your
 work including the output, ready to edit when the saved file is loaded again.
 
+## Technologies Used
+
+No libraries used for DOM manipulation or event handling; just doing it
+straight was good enough and led to much fewer total lines of code, and being
+cross platform wasn't my goal.
+
+* [Dedicated Web Worker](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/basic_usage) to act as a sandbox for Javascript code execution
+* [LDT](https://github.com/kueblc/LDT) -- A lightweight decorator for text
+  areas. Way better for our purposes than CodeMirror and its ilk. Also, I love that it doesn't have dependencies.
+* [console.save](https://bgrins.github.io/devtools-snippets/) -- I adapted this into `console.saveHtml`
+
 ## Notes from the beginning of the project
 
 **Goal:** an easy to share, easy to use document-creating tool, where the document is also the tool to create documents and you can write code and see the output and then save the code and the output... all of it as data.
