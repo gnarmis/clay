@@ -212,7 +212,7 @@
       /* fallback for browsers without rgba */
       color: transparent !important;
       /* make sure the alpha is low enough so it doesn't block the output layer */
-      color: rgba(0,0,0,.2) !important;
+      color: rgba(0,0,0,.3) !important;
     }
 
     /* Core LDT styles */
@@ -243,12 +243,17 @@
     .section { min-height: 16px;}
     .section .text { resize: none; min-height: 80px; margin-top: 16px; margin-bottom: 16px;}
 
+    .header { padding: 5px; min-height: 16px; }
+    .header .corner { min-width: 16px; min-height: 16px; display: inline-block; color: #999; margin-left: -32px;  }
+    a.anchor { text-decoration: none; border: none; color: #999; text-align: center; padding: 3px; font-family: monospace; }
+    a.btn:horver { text-decoration: none; border: none; color: #eee; background: #444; }
+
     a.btn { text-decoration: none; border: 1px solid #999; color: #999; text-align: center; padding: 3px 6px; margin: 3px; font-family: monospace; }
     a.btn:hover { text-decoration: none; color: #eee; border: 1px solid #444; background: #444; }
     a.btn:focus { text-decoration: none; color: #eee; background: #111; border: 1px solid #444; }
 
     /* Special styles for the remove buttons */
-    a.remove-section.btn, a.remove-unit.btn {border: none; margin: 5px; padding: 3px; font-size: 10px;}
+    a.remove-section.btn, a.remove-unit.btn {border: none; padding: 3px; font-size: 10px;}
 
     /* Special debug info box styles */
     #debug { width: 300px; min-height: 32px; padding: 5px; border: 1px solid #999; font-size: 12px; top: 10px; left: 10px; position: absolute; color: #999; background: #FFEFD5; z-index: -1; display: none; }
@@ -268,8 +273,8 @@
     <ul id="top-nav-bar">
       <li class="pull-left"><b>Clay</b>&nbsp;<span class="small italics">a computable document</span></li>
       <li class="pull-right"><a id="save-btn" class="btn" href="#footer">Save</a></li>
-      <li class="pull-right"><a id="append-unit" href="#main" class="btn">Append Code</a></li>
-      <li class="pull-right"><a id="append-section" href="#main" class="btn">Append Text</a></li>
+      <li class="pull-right"><a id="append-unit" href="#main" class="btn">&#43; Code</a></li>
+      <li class="pull-right"><a id="append-section" href="#main" class="btn">&#43; Text</a></li>
     </ul>
   </div>
 
@@ -398,7 +403,7 @@
 
       // Append a unit to the parent Node
       var unit = '<div id="unit-' + unitId +'" class="unit">' +
-        '<div class="header"><a href="#unit-' + unitId + '" class="btn remove-unit pull-right">&#10005;</a></div>' +
+        '<div class="header"><a href="#unit-' + unitId +'" class="pull-left corner anchor">\$</a><a href="#unit-' + unitId + '" class="btn remove-unit pull-right">&#10005;</a></div>' +
         '<textarea class="code"></textarea>' +
         '<div class="result">' +
           '<div class="output"></div>' +
@@ -436,7 +441,7 @@
 
       // Append a section to the parent node
       var section = '<div id="section-' + sectionId + '" class="section">' +
-        '<div class="header"><a href="#section-' + sectionId + '" class="btn remove-section pull-right">&#10005;</a></div>' +
+        '<div class="header"><a href="#section-' + sectionId + '" class="pull-left corner anchor">&para;</a><a href="#section-' + sectionId + '" class="btn remove-section pull-right">&#10005;</a></div>' +
         '<textarea class="text"></textarea>' +
         '</div>';
       parent.insertAdjacentHTML('beforeend', section);
@@ -542,6 +547,10 @@
     window.onload = function() {
       detectAndSetupSectionsAndUnits(main);
       setupGlobalButtons();
+
+      if (main.innerText == '') {
+        exampleUnitAndSection();
+      };
     };
   </script>
 </body>
