@@ -147,6 +147,8 @@
     };
   </script>
   <script type="text/javascript">
+    /* Based on console.save from https://bgrins.github.io/devtools-snippets/
+     * MIT License */
     (function(console){
       console.saveHtml = function(data, filename) {
         // terminate immediately if nothing to save
@@ -179,7 +181,7 @@
     /* Styles for the main document */
     #main { width: 720px; margin: 80px auto; background: #FFEFD5; }
     #top-nav-bar { margin-top: 16px; clear: both; font-family: monospace; list-style: none; padding: 0 40px; }
-    .fixed-nav-bar { position: fixed; top: 0; left: 0; z-index: 9999; width: 100%; min-width: 768px; height: 50px; background-color: #FFFFF0; }
+    .fixed-nav-bar { position: fixed; top: 0; left: 0; z-index: 9999; width: 100%; min-width: 768px; height: 50px; background-color: #FFFFF0; border: 1px solid #999; }
     .pull-right { display: inline-block; clear: none; float: right;}
     .pull-left { display: inline-block; clear: none; float: left; }
     .small { color: #ccc;  }
@@ -383,12 +385,16 @@
       doc.firstWhere(unitId + ' .result .error').innerText = '';
     };
 
+    // We want to be able to instantiate a Unit of code as a DOM Node with
+    // events and syntax highlighting and even some default code written in
+    // the textarea
     // Expects a parent Node, not a selector, and also a string of JavaScript
     // (thow if it's invalid it's ok, because we'll handle and show the error)
     function createCodeUnitWithCode(parent, code) {
       // no second is like this second!
       var unitId = +new Date();
       var identifier = '#unit-'+unitId;
+      var textareaSelector = identifier + ' textarea';
 
       // Append a unit to the parent Node
       var unit = '<div id="unit-' + unitId +'" class="unit">' +
@@ -405,22 +411,20 @@
       '</div>';
       parent.insertAdjacentHTML('beforeend', unit);
 
-      // We want to fill the textarea with code if we were asked to do that
-      if (code != undefined && code != null & code != '') {
-        var textarea = doc.firstWhere(identifier + ' textarea');
-        if (textarea != undefined && textarea != null) {
-          textarea.value = code;
-        }
-      }
+      fillTextarea(textareaSelector, code);
 
       // Enable syntax highlighting via LDT as well as events
-      new TextareaDecorator(doc.firstWhere(identifier + ' textarea'), codeParser);
+      new TextareaDecorator(doc.firstWhere(textareaSelector), codeParser);
       setupUnitEvents(identifier);
     };
 
+    // We want to be able to instantiate a Section of text as a DOM Node with
+    // events and syntax highlighting and even some default text written in
+    // the textarea
     function createSectionWithText(parent, text) {
       var sectionId = +new Date();
       var identifier = '#section-'+sectionId;
+      var textareaSelector = identifier + ' textarea';
 
       // Append a section to the parent node
       var section = '<div id="section-' + sectionId + '" class="section">' +
@@ -429,17 +433,21 @@
         '</div>';
       parent.insertAdjacentHTML('beforeend', section);
 
-      // We want to fill the textarea with text if we were asked to do that
-      if (text != undefined && text != null & text != '') {
-        var textarea = doc.firstWhere(identifier + ' textarea');
-        if (textarea != undefined && textarea != null) {
-          textarea.value = text;
-        }
-      }
+      fillTextarea(textareaSelector, text);
 
       // Enable syntax highlighting via LDT as well as events
-      new TextareaDecorator(doc.firstWhere(identifier + ' textarea'), wysiwygParser);
+      new TextareaDecorator(doc.firstWhere(textareaSelector), wysiwygParser);
       setupSectionEvents(identifier);
+    };
+
+    // We want to fill the textarea with text if we were asked to do that
+    function fillTextarea(selector, value) {
+      if (value != undefined && value != null && value != '') {
+        var textarea = doc.firstWhere(selector);
+        if (textarea != undefined && textarea != null) {
+          textarea.value = value;
+        }
+      }
     };
 
     function setupUnitEvents(unitId) {
@@ -488,34 +496,27 @@
       });
     };
 
-    // After a Clay page is saved, there's a pre tag with the code-so-far, but
+    // After a Clay page is saved, there's a pre tag with the text-so-far, but
     // when you then load that saved page, LDT won't get setup correctly. We
     // want the code that was there before to already exist on the page and
     // also be editable as if we'd just written it. So, we manually grab the
-    // text in the pre tags in the page and set up LDT ourselves
-    function detectAndSetupExistingUnits(parent) {
-      var existingPreTags = doc.where('.ldt.code pre');
+    // text in the pre tags in the page and set up LDT ourselves for sections
+    // and units alike.
+    function detectAndSetupSectionsAndUnits(parent) {
+      forEach(doc.where('.ldt pre'), function(index, node) {
+        if (node!=null || node!=undefined) {
+          var innerText = node.innerText;
+          var sectionOrUnit = node.parentNode.parentNode;
+          var type = sectionOrUnit.classList.contains('section') ? 'section' : 'unit';
 
-      forEach(existingPreTags, function(index, node) {
-        // replace the entire unit after grabbing the pre tag's value
-        var code = node.innerText;
-        parent.removeChild(node.parentNode.parentNode);
-        // create new code unit and put in the old code and ensure
-        // highlighting and events work
-        createCodeUnitWithCode(parent, code);
-      });
-    };
-
-    function detectAndSetupExistingSections(parent) {
-      var existingPreTags = doc.where('.ldt.text pre');
-
-      forEach(existingPreTags, function(index, node) {
-        // replace the entire unit after grabbing the pre tag's value
-        var text = node.innerText;
-        parent.removeChild(node.parentNode.parentNode);
-        // create new code unit and put in the old code and ensure
-        // highlighting and events work
-        createSectionWithText(parent, text)
+          if (type == 'section') {
+            parent.removeChild(sectionOrUnit);
+            createSectionWithText(parent, innerText);
+          } else if (type == 'unit') {
+            parent.removeChild(sectionOrUnit);
+            createCodeUnitWithCode(parent, innerText);
+          };
+        };
       });
     };
 
@@ -528,9 +529,7 @@
 
     // Run this code after the page is loaded
     window.onload = function() {
-      detectAndSetupExistingSections(doc.find('main'));
-      detectAndSetupExistingUnits(doc.find('main'));
-
+      detectAndSetupSectionsAndUnits(main);
       setupGlobalButtons();
     };
   </script>
