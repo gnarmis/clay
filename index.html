@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="description" content="Clay : A computable document creation tool for Javascript code and almost-plain-text with zero dependencies.">
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>Clay</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/gnarmis/clay">View on GitHub</a>
+
+          <h1 id="project_title">Clay</h1>
+          <h2 id="project_tagline">A computable document creation tool for Javascript code and almost-plain-text with zero dependencies.</h2>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/gnarmis/clay/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/gnarmis/clay/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <p><a href="https://raw.githubusercontent.com/gnarmis/clay/master/clay.html">You can use Clay by opening clay.html in Chrome or a similar modern browser.</a></p>
+
+<p>Clay is the document and also the tool; when you create a document using clay and save it
+as another HTML file, that HTML file can also create documents.</p>
+
+<p>Specifically, it's a single HTML file with zero outside dependencies that
+allows you to experiment with arbitrary Javascript code and also save all your
+work including the output, ready to edit when the saved file is loaded again.</p>
+
+<h2>
+<a id="technologies-used" class="anchor" href="#technologies-used" aria-hidden="true"><span class="octicon octicon-link"></span></a>Technologies Used</h2>
+
+<p>No libraries used for DOM manipulation or event handling; just doing it
+straight was good enough and led to much fewer total lines of code, and being
+cross platform wasn't my goal.</p>
+
+<ul>
+<li>
+<a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/basic_usage">Dedicated Web Worker</a> to act as a sandbox for Javascript code execution</li>
+<li>
+<a href="https://github.com/kueblc/LDT">LDT</a> -- A lightweight decorator for text
+areas. Way better for our purposes than CodeMirror and its ilk. Also, I love that it doesn't have dependencies.</li>
+<li>
+<a href="https://bgrins.github.io/devtools-snippets/">console.save</a> -- I adapted this into <code>console.saveHtml</code>
+</li>
+</ul>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">Clay maintained by <a href="https://github.com/gnarmis">gnarmis</a></p>
+        <p>Published with <a href="https://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+    
+
+  </body>
+</html>
