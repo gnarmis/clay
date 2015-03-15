@@ -248,7 +248,7 @@
     a.btn:focus { text-decoration: none; color: #eee; background: #111; border: 1px solid #444; }
 
     /* Special styles for the remove buttons */
-    a.remove-section.btn, a.remove-unit.btn {border: none;margin: 5px;}
+    a.remove-section.btn, a.remove-unit.btn {border: none; margin: 5px; padding: 3px; font-size: 10px;}
 
     /* Special debug info box styles */
     #debug { width: 300px; min-height: 32px; padding: 5px; border: 1px solid #999; font-size: 12px; top: 10px; left: 10px; position: absolute; color: #999; background: #FFEFD5; z-index: -1; display: none; }
@@ -390,7 +390,7 @@
     // the textarea
     // Expects a parent Node, not a selector, and also a string of JavaScript
     // (thow if it's invalid it's ok, because we'll handle and show the error)
-    function createCodeUnitWithCode(parent, code) {
+    function createCodeUnitWithCode(parent, code, output) {
       // no second is like this second!
       var unitId = +new Date();
       var identifier = '#unit-'+unitId;
@@ -398,7 +398,7 @@
 
       // Append a unit to the parent Node
       var unit = '<div id="unit-' + unitId +'" class="unit">' +
-        '<div class="header"><a href="#unit-' + unitId + '" class="btn remove-unit pull-right">x</a></div>' +
+        '<div class="header"><a href="#unit-' + unitId + '" class="btn remove-unit pull-right">&#10005;</a></div>' +
         '<textarea class="code"></textarea>' +
         '<div class="result">' +
           '<div class="output"></div>' +
@@ -412,6 +412,14 @@
       parent.insertAdjacentHTML('beforeend', unit);
 
       fillTextarea(textareaSelector, code);
+
+      if (output != undefined && output != null && output != '') {
+        console.log('yay: ' + output);
+        var outputNode = doc.firstWhere(identifier + ' .output');
+        if (outputNode != undefined && outputNode != null) {
+          outputNode.innerText = output;
+        };
+      };
 
       // Enable syntax highlighting via LDT as well as events
       new TextareaDecorator(doc.firstWhere(textareaSelector), codeParser);
@@ -428,7 +436,7 @@
 
       // Append a section to the parent node
       var section = '<div id="section-' + sectionId + '" class="section">' +
-        '<div class="header"><a href="#section-' + sectionId + '" class="btn remove-section pull-right">x</a></div>' +
+        '<div class="header"><a href="#section-' + sectionId + '" class="btn remove-section pull-right">&#10005;</a></div>' +
         '<textarea class="text"></textarea>' +
         '</div>';
       parent.insertAdjacentHTML('beforeend', section);
@@ -513,8 +521,11 @@
             parent.removeChild(sectionOrUnit);
             createSectionWithText(parent, innerText);
           } else if (type == 'unit') {
+            var outputNode = doc.firstWhere('#' + sectionOrUnit.id + ' .output');
+            var output = '';
+            if (outputNode != null && outputNode != undefined) output = outputNode.innerText;
             parent.removeChild(sectionOrUnit);
-            createCodeUnitWithCode(parent, innerText);
+            createCodeUnitWithCode(parent, innerText, output);
           };
         };
       });
