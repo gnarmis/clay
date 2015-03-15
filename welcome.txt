@@ -1,0 +1,33 @@
+*Welcome to Clay!*
+
+Clay is composed of sections of text and units of code. It is completely
+defined by a single HTML file and depends on nothing else.
+
+At any point, you can save the document using the Save button at the top right
+and upon loading the resulting file in a separate window, you can continue
+writing and coding as if nothing happened.
+
+However, /there is no auto save yet!/ Clay does not use localStorage at this
+point in time.
+
+*How to Use Clay*
+
+In a /section of text/, you have access to these simple styles:
+
+Plain
+*Bold*
+/Italics/
+_Underline_
+-Strikethrough-
+
+In a /unit of code/, you can execute arbitrary Javascript and see either the
+result or the error. Your code is run in a transient web worker's context,
+meaning the state of the sandbox that is running your code is flushed every
+time you hit Return.
+
+You can add sections of text, add units of code, remove any unit or section,
+save the whole document, and reset the document. Also, the icons to the top
+right of any unit or section provide an anchor link to that section or unit.
+
+Also, you can easily extend Clay by opening the HTML file you in any text
+editor.

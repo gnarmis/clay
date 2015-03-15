@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html>
-
 <head>
   <script type="text/javascript">
     /* TextareaDecorator.js
@@ -179,7 +178,7 @@
     div { clear: both; }
 
     /* Styles for the main document */
-    #main { width: 720px; margin: 80px auto; background: #FFEFD5; }
+    #main { width: 780px; margin: 80px auto; background: #FFEFD5; }
     #top-nav-bar { margin-top: 16px; clear: both; font-family: monospace; list-style: none; padding: 0 40px; }
     .fixed-nav-bar { position: fixed; top: 0; left: 0; z-index: 9999; width: 100%; min-width: 768px; height: 50px; background-color: #FFFFF0; border: 1px solid #999; }
     .pull-right { display: inline-block; clear: none; float: right;}
@@ -241,7 +240,7 @@
 
     /* Styles for sections of text */
     .section { min-height: 16px;}
-    .section .text { resize: none; min-height: 80px; margin-top: 16px; margin-bottom: 16px;}
+    .section .text { resize: none; min-height: 80px; margin: 16px 10px 16px 10px; overflow: hidden; }
 
     .header { padding: 5px; min-height: 16px; }
     .header .corner { min-width: 16px; min-height: 16px; display: inline-block; color: #999; margin-left: -32px;  }
@@ -261,7 +260,6 @@
     #debug .log { max-height: 400px; overflow: scroll; }
   </style>
 </head>
-
 <body>
   <div id="debug">
     <i>Debug</i>
@@ -275,6 +273,7 @@
       <li class="pull-right"><a id="save-btn" class="btn" href="#footer">Save</a></li>
       <li class="pull-right"><a id="append-unit" href="#main" class="btn">&#43; Code</a></li>
       <li class="pull-right"><a id="append-section" href="#main" class="btn">&#43; Text</a></li>
+      <li class="pull-right"><a id="reset-btn" href="#main" class="btn">Reset</a></li>
     </ul>
   </div>
 
@@ -419,7 +418,6 @@
       fillTextarea(textareaSelector, code);
 
       if (output != undefined && output != null && output != '') {
-        console.log('yay: ' + output);
         var outputNode = doc.firstWhere(identifier + ' .output');
         if (outputNode != undefined && outputNode != null) {
           outputNode.innerText = output;
@@ -507,6 +505,13 @@
         html = '<!DOCTYPE html>\n<html>\n\t' + document.documentElement.innerHTML + '\n</html>';
         console.saveHtml(html);
       });
+
+      // Reset `main` to blank
+      doc.firstWhere('#reset-btn').addEventListener('click', function(e) {
+        if (confirm('Delete all sections of text and units of code?')) {
+          main.innerText = '';
+        };
+      });
     };
 
     // After a Clay page is saved, there's a pre tag with the text-so-far, but
@@ -539,7 +544,8 @@
     var main = doc.find('main');
 
     function exampleUnitAndSection() {
-      createSectionWithText(main, 'Plain\n*Bold*\n/Italics/\n_Underline_\n-Strikethrough-');
+      // Update with `$ ruby -e 'puts File.read(File.expand_path("./welcome.txt")).inspect'`
+      createSectionWithText(main, "*Welcome to Clay!*\n\nClay is composed of sections of text and units of code. It is completely\ndefined by a single HTML file and depends on nothing else.\n\nAt any point, you can save the document using the Save button at the top right\nand upon loading the resulting file in a separate window, you can continue\nwriting and coding as if nothing happened.\n\nHowever, /there is no auto save yet!/ Clay does not use localStorage at this\npoint in time.\n\n*How to Use Clay*\n\nIn a /section of text/, you have access to these simple styles:\n\nPlain\n*Bold*\n/Italics/\n_Underline_\n-Strikethrough-\n\nIn a /unit of code/, you can execute arbitrary Javascript and see either the\nresult or the error. Your code is run in a transient web worker's context,\nmeaning the state of the sandbox that is running your code is flushed every\ntime you hit Return.\n\nYou can add sections of text, add units of code, remove any unit or section,\nsave the whole document, and reset the document. Also, the icons to the top\nright of any unit or section provide an anchor link to that section or unit.\n\nAlso, you can easily extend Clay by opening the HTML file you in any text\neditor.\n");
       createCodeUnitWithCode(main, 'Math.floor(Math.random()*100)');
     };
 
@@ -554,5 +560,4 @@
     };
   </script>
 </body>
-
 </html>
